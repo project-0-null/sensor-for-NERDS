@@ -1,0 +1,28 @@
+# Ambientes virtuais
+NERDS/
+venv/
+env/
+.env
+
+# Marcador de instalacao
+.installed
+NERDS/.installed
+
+# Bytecode e caches do Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Videos de teste gravados localmente
+*.mp4
+*.avi
+*.mkv
+*.mov
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

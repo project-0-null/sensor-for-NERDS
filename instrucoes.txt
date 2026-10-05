@@ -1,0 +1,16 @@
+COMO EXECUTAR
+
+Pre-requisito:
+Ter o Python instalado no computador (ao instalar no Windows, marque a opcao "Add Python to PATH").
+
+WINDOWS:
+1. De dois cliques no arquivo:
+   run_nerds.bat
+
+LINUX:
+1. Abra o terminal nesta pasta e execute:
+   ./run_nerds.sh
+
+OBSERVACOES:
+- Na primeira vez, o script cria a venv "NERDS" e baixa tudo automaticamente. Nas proximas vezes, abre direto.
+- Para sair da camera: pressione ESC ou a tecla q.
