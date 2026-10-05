@@ -100,24 +100,39 @@ def run_yolo_detector(source=0, model_path="yolov11n.pt", show=True, imgsz=320, 
                     mask = mag > 0.5  # ignora ruido e microvibracoes
 
                     if np.any(mask):
-                        dx = float(np.mean(flow[..., 0][mask]))
-                        dy = float(np.mean(flow[..., 1][mask]))
+                        dx_raw = float(np.mean(flow[..., 0][mask]))
+                        dy_raw = float(np.mean(flow[..., 1][mask]))
                     else:
-                        dx, dy = 0.0, 0.0
+                        dx_raw, dy_raw = 0.0, 0.0
 
-                    velocidade = np.sqrt(dx**2 + dy**2) * fps
-            else:
-                # Suavizacao temporal entre frames intermediarios
-                if track_id in last_movements:
-                    prev_dx, prev_dy, _ = last_movements[track_id]
-                    alpha = 0.8
-                    dx = prev_dx * alpha
-                    dy = prev_dy * alpha
+                    # Suavizacao e verificacao de inversao com base no movimento anterior
+                    if track_id in last_movements:
+                        prev_dx, prev_dy, _ = last_movements[track_id]
+
+                        # Produto escalar entre vetor atual e anterior
+                        dot = dx_raw * prev_dx + dy_raw * prev_dy
+                        if dot < 0:
+                            # Inversao brusca de movimento: adota nova direcao sem atrito
+                            dx, dy = dx_raw, dy_raw
+                        else:
+                            # Suavizacao temporal ponderada
+                            alpha = 0.6
+                            dx = alpha * prev_dx + (1.0 - alpha) * dx_raw
+                            dy = alpha * prev_dy + (1.0 - alpha) * dy_raw
+                    else:
+                        dx, dy = dx_raw, dy_raw
+
+                    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
                     velocidade = np.sqrt(dx**2 + dy**2) * fps
 
-                    # Limiar minimo de velocidade
                     if velocidade < 1.0:
                         dx, dy, velocidade = 0.0, 0.0, 0.0
+            else:
+                # Mantem a ultima estimativa de velocidade nos frames intermediarios
+                if track_id in last_movements:
+                    dx, dy, velocidade = last_movements[track_id]
+                else:
+                    dx, dy, velocidade = 0.0, 0.0, 0.0
 
             new_movements[track_id] = (dx, dy, velocidade)
 
