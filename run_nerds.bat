@@ -6,40 +6,49 @@ cd /d "%~dp0"
 echo ========================================================
 echo             SENSOR FOR NERDS - INICIALIZADOR
 echo ========================================================
+echo.
 
-:: 1. Verifica instalacao do Python
-where python >nul 2>nul
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERRO] Python nao foi encontrado no sistema!
-    echo.
-    echo Por favor, instale o Python 3.10 ou superior atraves do site oficial:
-    echo   https://www.python.org/downloads/
-    echo.
-    echo IMPORTANTE: Durante a instalacao, marque a opcao:
-    echo   "[X] Add Python to PATH" ou "[X] Adicionar Python ao PATH"
-    echo.
-    pause
-    exit /b 1
-)
+REM 1. Verifica se o Python esta instalado e funcionando
+set "PY_CMD="
 
-:: 2. Cria o ambiente virtual NERDS se nao existir
-if not exist "NERDS\Scripts\activate.bat" (
-    echo [INFO] Criando ambiente virtual isolado (NERDS)...
-    python -m venv NERDS
-    if %errorlevel% neq 0 (
-        echo.
-        echo [ERRO] Falha ao criar o ambiente virtual NERDS.
-        echo Verifique se possui permissoes no diretorio.
-        pause
-        exit /b 1
+python -c "import sys" >nul 2>nul
+if !errorlevel! equ 0 (
+    set "PY_CMD=python"
+) else (
+    py -c "import sys" >nul 2>nul
+    if !errorlevel! equ 0 (
+        set "PY_CMD=py"
     )
 )
 
-:: 3. Ativa o ambiente virtual
+if "%PY_CMD%"=="" (
+    echo [ERRO] Python nao encontrado ou configurado incorretamente!
+    echo.
+    echo Para resolver:
+    echo 1. Baixe o instalador no site oficial: https://www.python.org/downloads/
+    echo 2. Execute o instalador e marque OBRIGATORIAMENTE a caixa:
+    echo    "[X] Add Python to PATH" ou "[X] Adicionar Python ao PATH"
+    echo 3. Finalize a instalacao e tente abrir este arquivo novamente.
+    echo.
+    goto :pause_and_exit
+)
+
+REM 2. Cria o ambiente virtual isolado (NERDS) se ainda nao existir
+if not exist "NERDS\Scripts\activate.bat" (
+    echo [INFO] Criando ambiente virtual isolado (NERDS)...
+    %PY_CMD% -m venv NERDS
+    if not exist "NERDS\Scripts\activate.bat" (
+        echo.
+        echo [ERRO] Falha ao criar a pasta NERDS.
+        echo Verifique se ha permissoes de escrita nesta pasta.
+        goto :pause_and_exit
+    )
+)
+
+REM 3. Ativa o ambiente virtual
 call NERDS\Scripts\activate.bat
 
-:: 4. Instala dependencias na primeira execucao
+REM 4. Instala dependencias na primeira execucao
 if not exist "NERDS\.installed" (
     echo.
     echo ========================================================
@@ -50,9 +59,9 @@ if not exist "NERDS\.installed" (
 
     python -m pip install --upgrade pip
 
-    :: Detecta presenca de GPU NVIDIA via nvidia-smi
+    REM Detecta presenca de GPU NVIDIA via nvidia-smi
     where nvidia-smi >nul 2>nul
-    if %errorlevel% equ 0 (
+    if !errorlevel! equ 0 (
         echo [INFO] GPU NVIDIA detectada! Instalando PyTorch com aceleracao CUDA...
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
     ) else (
@@ -63,25 +72,28 @@ if not exist "NERDS\.installed" (
     echo [INFO] Instalando bibliotecas necessarias (OpenCV, Ultralytics, NumPy)...
     pip install -r requirements.txt
 
-    if %errorlevel% equ 0 (
-        type nul > "NERDS\.installed"
+    if !errorlevel! neq 0 (
         echo.
-        echo [SUCESSO] Instalacao finalizada com sucesso!
-        echo.
-    ) else (
-        echo.
-        echo [ERRO] Ocorreu uma falha ao instalar as dependencias.
-        pause
-        exit /b 1
+        echo [ERRO] Ocorreu uma falha ao baixar/instalar os pacotes.
+        goto :pause_and_exit
     )
+
+    type nul > "NERDS\.installed"
+    echo.
+    echo [SUCESSO] Instalacao finalizada com sucesso!
+    echo.
 )
 
-:: 5. Executa a aplicacao
+REM 5. Executa a aplicacao principal
 echo [INFO] Iniciando o Sensor for NERDS...
 python main.py %*
 
-if %errorlevel% neq 0 (
+if !errorlevel! neq 0 (
     echo.
-    echo [INFO] Aplicacao finalizada com codigo de saida %errorlevel%.
-    pause
+    echo [AVISO] Aplicacao finalizada com codigo de retorno !errorlevel!.
 )
+
+:pause_and_exit
+echo.
+echo Pressione qualquer tecla para fechar esta janela...
+pause >nul
